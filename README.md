@@ -68,7 +68,7 @@ This keeps everything reproducible and helps the notebooks stay clean.
 
 ## 🔎 Notebooks Breakdown
 
-# 1. EDA
+### 1. EDA
 
 Explores the processed dataset:
 
@@ -80,7 +80,7 @@ Explores the processed dataset:
 
 - basic behavior patterns
 
-# 2. ALS Baseline Model
+### 2. ALS Baseline Model
 
 Uses the **implicit** library to train a collaborative filtering model:
 
@@ -96,7 +96,7 @@ This acts as the baseline recommender.
 
 ---
 
-# 3. Content Feature Engineering
+### 3. Content Feature Engineering
 
 Builds all signals needed for a hybrid model:
 
@@ -112,7 +112,7 @@ Builds all signals needed for a hybrid model:
 
 - Outputs **hybrid_train_pairs.parquet**.
 
-# 4. Hybrid LightGBM Ranker
+### 4. Hybrid LightGBM Ranker
 
 Trains a ranking model that uses both ALS and content features.
 
@@ -126,7 +126,7 @@ Trains a ranking model that uses both ALS and content features.
 
 This gives stronger recommendations than ALS alone.
 
-# 5. Recommendation Notebook
+### 5. Recommendation Notebook
 
 Loads both trained models and shows:
 
