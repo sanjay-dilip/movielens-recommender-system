@@ -1,0 +1,11 @@
+paths:
+  raw_dir: data/raw
+  processed_dir: data/processed
+files:
+  ratings: ratings.dat
+  movies: movies.dat
+options:
+  rating_min: 0.5
+  rating_max: 5.0
+  test_ratio: 0.2
+  min_events_per_user: 5

@@ -1,0 +1,2 @@
+n_users,n_movies,total_ratings,train_ratings,test_ratings
+6040,3706,1000209,802553,197656
