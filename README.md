@@ -184,4 +184,5 @@ Run it using:
                         - hybrid results
 
 
-The Streamlit App has been deployed at: `https://sd-movielens-recommender.streamlit.app/`
+The Streamlit App has been deployed at: [Streamlit App](https://sd-movielens-recommender.streamlit.app/)
+
