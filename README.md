@@ -182,3 +182,6 @@ Run it using:
                         - user history
                         - ALS results
                         - hybrid results
+
+
+The Streamlit App has been deployed at: `https://sd-movielens-recommender.streamlit.app/`
