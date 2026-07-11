@@ -123,14 +123,19 @@ The original per-model evaluation ran inline within the training notebooks (`als
 
 These aren't just "different protocols" — the ALS notebook's evaluation helper silently dropped ~38.6% of users due to an indexing bound checked against the wrong matrix shape, and the hybrid ranker's NDCG was computed against **train-derived labels** over a candidate pool of train positives + negatives, which measures training-set re-ranking rather than generalization to held-out data.
 
-**Unified evaluation protocol:** both models scored against the same held-out `test.csv` positives, the same per-user candidate groups (all held-out positives + 99 sampled true negatives, excluded from both train and test interactions), and the same @10 cutoff, over 3 negative-sampling seeds (42, 43, 44 — models are not retrained, only the negative sampling varies across seeds):
+**Unified evaluation protocol:** all rows below are scored against the same held-out `test.csv` positives, the same per-user candidate groups (all held-out positives + 99 sampled true negatives, excluded from both train and test interactions), and the same @10 cutoff, over 3 negative-sampling seeds (42, 43, 44 — no model below is retrained during evaluation itself; only the negative sampling varies across seeds). The three hybrid rows trace a debugging session that fixed a training/eval negative-sampling leakage, then a training/eval group-composition mismatch; the pointwise row is a sanity check trained on the same (leakage-fixed, ratio-fixed) data as a plain binary classifier instead of a LambdaRank ranker:
 
 | Model | Recall@10 (mean±std) | NDCG@10 (mean±std) | Precision@10 (mean±std) |
 |---|---|---|---|
 | ALS (factors=64, reg=0.1, iters=20) | 0.4107 ± 0.0006 | 0.7243 ± 0.0017 | 0.6467 ± 0.0003 |
-| Hybrid LightGBM Ranker | 0.2269 ± 0.0008 | 0.4734 ± 0.0014 | 0.4278 ± 0.0014 |
+| Hybrid LightGBM Ranker — pre-fix (leakage present) | 0.2269 ± 0.0008 | 0.4734 ± 0.0014 | 0.4278 ± 0.0014 |
+| Hybrid LightGBM Ranker — leakage-fixed only | 0.2269 ± 0.0002 | 0.4748 ± 0.0007 | 0.4289 ± 0.0008 |
+| Hybrid LightGBM Ranker — ratio-fixed (final) | 0.2300 ± 0.0004 | 0.4823 ± 0.0004 | 0.4347 ± 0.0007 |
+| Pointwise LGBMClassifier (sanity check) | 0.2255 ± 0.0004 | 0.4668 ± 0.0002 | 0.4253 ± 0.0007 |
 
-**Note on comparability:** under this corrected, held-out protocol, ALS actually outperforms the hybrid ranker — the reverse of what the legacy snapshot suggested, since the legacy hybrid NDCG measured re-ranking of training labels rather than generalization. This is a measurement correction, not a model regression, and it's a more honest starting point for the refinement work below. The unified numbers are also considerably higher than the legacy ALS Recall@10/NDCG@10 because ranking against ~100 candidates (positives + 99 sampled negatives) is a substantially easier task than ranking against the full ~3,706-movie catalog — both are legitimate, standard evaluation setups, but they aren't comparable to each other either.
+**Findings:** the hybrid ranker underperforms ALS even after fixing a training/eval negative-sampling leakage and a training/eval group-composition mismatch. A pointwise classifier using the same features performed similarly to the ratio-fixed ranker, indicating the gap traces to feature signal (genre one-hot, user taste profile, genre similarity) rather than the choice of learning objective. ALS's collaborative-filtering embeddings remain the strongest standalone model on this dataset.
+
+**Note on comparability:** under this corrected, held-out protocol, ALS outperforms every hybrid variant — the reverse of what the legacy snapshot suggested, since the legacy hybrid NDCG measured re-ranking of training labels rather than generalization. This is a measurement correction, not a model regression, and it's a more honest starting point for the refinement work below. The unified numbers are also considerably higher than the legacy ALS Recall@10/NDCG@10 because ranking against ~100 candidates (positives + 99 sampled negatives) is a substantially easier task than ranking against the full ~3,706-movie catalog — both are legitimate, standard evaluation setups, but they aren't comparable to each other either.
 
 ### Future Evaluation & Metric Refinement
 This repository is the active target for further work. Planned/pending items:
@@ -138,6 +143,7 @@ This repository is the active target for further work. Planned/pending items:
 - [ ] Add Precision@K and coverage/diversity metrics alongside Recall/NDCG.
 - [ ] Cross-validate metrics across multiple random seeds / splits to check stability.
 - [ ] Produce resume-ready, defensible summary metrics once the above is complete.
+- [ ] Investigate richer content features (e.g. tags, cast/crew, description embeddings) to test whether the hybrid approach can close the gap to ALS, since genre-only features did not.
 
 Until the remaining items land, treat the unified numbers above as a solid but not final benchmark.
 
