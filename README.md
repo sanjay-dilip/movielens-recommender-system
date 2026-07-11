@@ -109,10 +109,11 @@ Trains a ranking model that uses both ALS and content features (`notebooks/conte
 
 ## Evaluation Workflow
 
-Evaluation is run inline within the training notebooks (`als.ipynb`, `hybrid_ranker.ipynb`) against a per-user, time-based train/test split produced by the pipeline.
+The original per-model evaluation ran inline within the training notebooks (`als.ipynb`, `hybrid_ranker.ipynb`). A shared, unified evaluation module (`src/evaluation.py`, run via `python src/run_evaluation.py`) now scores both **frozen, already-trained** models — no retraining — against identical per-user candidate groups built from the held-out time-based test split, so the two models' numbers are directly comparable.
 
 ### Current Verified Metrics
-These are the last-recorded results from the committed notebook runs:
+
+**Legacy per-notebook snapshots (different protocols, not directly comparable — kept for history):**
 
 | Model | Metric | Value |
 |---|---|---|
@@ -120,16 +121,25 @@ These are the last-recorded results from the committed notebook runs:
 | ALS (factors=64, reg=0.1, iters=20) | NDCG@10 | 0.0057 |
 | Hybrid LightGBM Ranker | Average NDCG | 0.9585 |
 
-**Note on comparability:** the ALS metrics and the hybrid ranker's NDCG are computed over different evaluation sets/protocols (whole-catalog ranking vs. grouped candidate ranking), so the two are not directly comparable as-is. Establishing a single, apples-to-apples evaluation protocol across both models is tracked below as future work.
+These aren't just "different protocols" — the ALS notebook's evaluation helper silently dropped ~38.6% of users due to an indexing bound checked against the wrong matrix shape, and the hybrid ranker's NDCG was computed against **train-derived labels** over a candidate pool of train positives + negatives, which measures training-set re-ranking rather than generalization to held-out data.
+
+**Unified evaluation protocol:** both models scored against the same held-out `test.csv` positives, the same per-user candidate groups (all held-out positives + 99 sampled true negatives, excluded from both train and test interactions), and the same @10 cutoff, over 3 negative-sampling seeds (42, 43, 44 — models are not retrained, only the negative sampling varies across seeds):
+
+| Model | Recall@10 (mean±std) | NDCG@10 (mean±std) | Precision@10 (mean±std) |
+|---|---|---|---|
+| ALS (factors=64, reg=0.1, iters=20) | 0.4107 ± 0.0006 | 0.7243 ± 0.0017 | 0.6467 ± 0.0003 |
+| Hybrid LightGBM Ranker | 0.2269 ± 0.0008 | 0.4734 ± 0.0014 | 0.4278 ± 0.0014 |
+
+**Note on comparability:** under this corrected, held-out protocol, ALS actually outperforms the hybrid ranker — the reverse of what the legacy snapshot suggested, since the legacy hybrid NDCG measured re-ranking of training labels rather than generalization. This is a measurement correction, not a model regression, and it's a more honest starting point for the refinement work below. The unified numbers are also considerably higher than the legacy ALS Recall@10/NDCG@10 because ranking against ~100 candidates (positives + 99 sampled negatives) is a substantially easier task than ranking against the full ~3,706-movie catalog — both are legitimate, standard evaluation setups, but they aren't comparable to each other either.
 
 ### Future Evaluation & Metric Refinement
 This repository is the active target for further work. Planned/pending items:
-- [ ] Re-evaluate ALS and the hybrid ranker under one consistent protocol (same candidate set, same @K, same test split).
+- [x] Re-evaluate ALS and the hybrid ranker under one consistent protocol (same candidate set, same @K, same test split).
 - [ ] Add Precision@K and coverage/diversity metrics alongside Recall/NDCG.
 - [ ] Cross-validate metrics across multiple random seeds / splits to check stability.
 - [ ] Produce resume-ready, defensible summary metrics once the above is complete.
 
-Until this work lands, treat the numbers above as a snapshot from initial model development, not final benchmarks.
+Until the remaining items land, treat the unified numbers above as a solid but not final benchmark.
 
 ## Streamlit Application
 
@@ -175,6 +185,8 @@ movielens-recommender-system/
 │   └── recommendations.ipynb
 ├── src/
 │   ├── run_pipeline.py
+│   ├── run_evaluation.py
+│   ├── evaluation.py
 │   └── pipeline/
 │       ├── io.py, processing.py, splits.py, matrices.py
 └── README.md
@@ -188,6 +200,9 @@ pip install -r requirements.txt
 
 # Rebuild processed data from raw (optional — data/processed/ is already included)
 python src/run_pipeline.py
+
+# Re-run the unified ALS vs. hybrid evaluation (scores existing trained models, no retraining)
+python src/run_evaluation.py
 
 # Run the Streamlit app
 streamlit run app.py
