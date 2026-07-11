@@ -1,4 +1,4 @@
-# MovieLens Recommender System – Pipeline, ALS, Hybrid Model, Streamlit App
+# MovieLens Recommender System
 
 ## Overview
 
