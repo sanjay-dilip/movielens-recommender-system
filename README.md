@@ -147,7 +147,7 @@ Run it using:
 streamlit run app.py
 ```
 
-Live deployment: [Streamlit App](https://sd-movielens-recommender.streamlit.app/)
+Live deployment: [Streamlit App](https://movielens-movie-recommender.streamlit.app/)
 
 ## Repository Structure
 ```
